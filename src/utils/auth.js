@@ -1,37 +1,104 @@
-// Gestion de l'authentification admin
+// src/utils/auth.js - VERSION AVEC CODE DE SÉCURITÉ AMÉLIORÉE
 export const Auth = {
-  // Vérifier si l'utilisateur est connecté en tant qu'admin
-  isAuthenticated() {
-    return localStorage.getItem('adminAuthenticated') === 'true';
+  // ✅ CODE ADMIN CONFIGURABLE
+  ADMIN_CREDENTIALS: {
+    email: 'admin@tombola.com',
+    password: 'admin123', // 🔒 Changez ce mot de passe
+    securityCode: 'TOMBOLA2024' // 🔐 Code de sécurité requis
   },
 
-  // Connecter l'utilisateur
-  login(password, email = null) {
-    // ✅ CHANGEZ CE MOT DE PASSE !
-    const adminPassword = "tombola2024"; 
-    if (password === adminPassword) {
-      localStorage.setItem('adminAuthenticated', 'true');
+  // ✅ VÉRIFICATION AVEC CODE
+  login(email, password, securityCode = '') {
+    // Vérification des credentials
+    if (email === this.ADMIN_CREDENTIALS.email && 
+        password === this.ADMIN_CREDENTIALS.password &&
+        securityCode === this.ADMIN_CREDENTIALS.securityCode) {
       
-      // ✅ SAUVEGARDER LES INFOS DE L'UTILISATEUR
-      const userData = {
-        email: email || 'admin@tombola.com',
+      const user = {
+        email: email,
+        name: 'Administrateur Tombola',
+        role: 'admin',
         loginTime: new Date().toISOString(),
-        sessionId: Math.random().toString(36).substring(2, 15)
+        sessionId: Math.random().toString(36).substring(2, 15),
+        permissions: this.getUserPermissions(email)
       };
-      localStorage.setItem('adminUser', JSON.stringify(userData));
       
+      localStorage.setItem('adminUser', JSON.stringify(user));
+      localStorage.setItem('adminToken', this.generateToken());
+      
+      console.log('✅ Connexion admin réussie');
+      return { success: true, user: user };
+    }
+    
+    console.log('❌ Échec connexion admin');
+    return { success: false, message: 'Identifiants incorrects' };
+  },
+
+  // ✅ GÉNÉRATION DE TOKEN
+  generateToken() {
+    return 'admin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  },
+
+  // ✅ VÉRIFICATION AUTHENTIFICATION
+  isAuthenticated() {
+    const user = localStorage.getItem('adminUser');
+    const token = localStorage.getItem('adminToken');
+    
+    if (!user || !token) {
+      return false;
+    }
+    
+    // Vérifier si le token est expiré (24h)
+    try {
+      const tokenParts = token.split('_');
+      const tokenTime = parseInt(tokenParts[1]);
+      const now = Date.now();
+      const tokenAge = now - tokenTime;
+      
+      // Token expiré après 24 heures
+      if (tokenAge > 24 * 60 * 60 * 1000) {
+        this.logout();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      this.logout();
+      return false;
+    }
+  },
+
+  // ✅ RÉCUPÉRATION UTILISATEUR
+  getCurrentUser() {
+    if (this.isAuthenticated()) {
+      return JSON.parse(localStorage.getItem('adminUser'));
+    }
+    return null;
+  },
+
+  // ✅ DÉCONNEXION
+  logout() {
+    localStorage.removeItem('adminUser');
+    localStorage.removeItem('adminToken');
+    console.log('🔒 Admin déconnecté');
+  },
+
+  // ✅ VÉRIFICATION DU CODE DE SÉCURITÉ
+  validateSecurityCode(code) {
+    return code === this.ADMIN_CREDENTIALS.securityCode;
+  },
+
+  // ✅ CHANGEMENT DU CODE DE SÉCURITÉ
+  updateSecurityCode(newCode) {
+    if (newCode && newCode.length >= 6) {
+      this.ADMIN_CREDENTIALS.securityCode = newCode;
+      console.log('🔐 Code de sécurité mis à jour');
       return true;
     }
     return false;
   },
 
-  // Déconnecter l'utilisateur
-  logout() {
-    localStorage.removeItem('adminAuthenticated');
-    localStorage.removeItem('adminUser');
-  },
-
-  // Protéger une route - Redirige vers login si non authentifié
+  // ✅ PROTÉGER UNE ROUTE - REDIRIGE VERS LOGIN SI NON AUTHENTIFIÉ
   requireAuth() {
     if (!this.isAuthenticated()) {
       window.location.hash = '#/admin-login';
@@ -40,20 +107,11 @@ export const Auth = {
     return true;
   },
 
-  // Accès direct à l'admin (pour vous seulement)
+  // ✅ ACCÈS DIRECT À L'ADMIN (POUR DÉVELOPPEMENT)
   directAccess() {
     // Cette fonction permet d'accéder directement à l'admin
-    // en connaissant l'URL exacte
+    // en connaissant l'URL exacte - À UTILISER AVEC PRÉCAUTION
     return true;
-  },
-
-  // ✅ FONCTION POUR RÉCUPÉRER L'UTILISATEUR COURANT
-  getCurrentUser() {
-    if (this.isAuthenticated()) {
-      const userData = localStorage.getItem('adminUser');
-      return userData ? JSON.parse(userData) : null;
-    }
-    return null;
   },
 
   // ✅ FONCTION POUR METTRE À JOUR LES INFOS UTILISATEUR
@@ -70,27 +128,32 @@ export const Auth = {
   // ✅ FONCTION POUR VÉRIFIER LES PERMISSIONS SPÉCIFIQUES
   hasPermission(permission) {
     const user = this.getCurrentUser();
-    if (!user) return false;
+    if (!user || !user.permissions) return false;
 
-    // Permissions basées sur l'email
-    const adminEmails = [
+    return user.permissions.includes(permission);
+  },
+
+  // ✅ OBTENIR LES PERMISSIONS DE L'UTILISATEUR
+  getUserPermissions(email) {
+    const permissions = {
+      // Permissions de base pour tous les admins
+      base: ['ticket_management', 'view_analytics', 'view_dashboard'],
+      
+      // Permissions avancées pour super admin
+      advanced: ['user_management', 'system_settings', 'payment_management', 'export_data']
+    };
+
+    // Définir les emails super admin
+    const superAdminEmails = [
       'votre-email@admin.com', // ⚠️ REMPLACEZ PAR VOTRE EMAIL
-      'admin@tombola.com',
       'superadmin@tombola.com'
     ];
 
-    switch (permission) {
-      case 'analytics':
-        return adminEmails.includes(user.email);
-      case 'super_admin':
-        return user.email === 'votre-email@admin.com'; // ⚠️ REMPLACEZ PAR VOTRE EMAIL
-      case 'ticket_management':
-        return true; // Tous les admins peuvent gérer les tickets
-      case 'user_management':
-        return adminEmails.includes(user.email);
-      default:
-        return false;
+    if (superAdminEmails.includes(email)) {
+      return [...permissions.base, ...permissions.advanced];
     }
+
+    return permissions.base;
   },
 
   // ✅ FONCTION POUR OBTENIR LE TEMPS DE SESSION
@@ -132,5 +195,89 @@ export const Auth = {
     }
 
     return true;
+  },
+
+  // ✅ SAUVEGARDER LA CONFIGURATION ADMIN
+  saveAdminConfig(config) {
+    if (this.hasPermission('system_settings')) {
+      try {
+        localStorage.setItem('adminConfig', JSON.stringify(config));
+        return true;
+      } catch (error) {
+        console.error('Erreur sauvegarde config:', error);
+        return false;
+      }
+    }
+    return false;
+  },
+
+  // ✅ CHARGER LA CONFIGURATION ADMIN
+  loadAdminConfig() {
+    try {
+      const config = localStorage.getItem('adminConfig');
+      return config ? JSON.parse(config) : {};
+    } catch (error) {
+      console.error('Erreur chargement config:', error);
+      return {};
+    }
+  },
+
+  // ✅ JOURNALISATION DES ACTIVITÉS ADMIN
+  logActivity(action, details = {}) {
+    if (!this.isAuthenticated()) return;
+
+    const user = this.getCurrentUser();
+    const activity = {
+      action,
+      user: user.email,
+      timestamp: new Date().toISOString(),
+      details,
+      sessionId: user.sessionId
+    };
+
+    // Sauvegarder dans le localStorage (limité à 50 activités)
+    try {
+      const activities = JSON.parse(localStorage.getItem('adminActivities') || '[]');
+      activities.unshift(activity);
+      
+      // Garder seulement les 50 dernières activités
+      if (activities.length > 50) {
+        activities.pop();
+      }
+      
+      localStorage.setItem('adminActivities', JSON.stringify(activities));
+    } catch (error) {
+      console.error('Erreur journalisation:', error);
+    }
+  },
+
+  // ✅ RÉCUPÉRER LES ACTIVITÉS RÉCENTES
+  getRecentActivities(limit = 10) {
+    try {
+      const activities = JSON.parse(localStorage.getItem('adminActivities') || '[]');
+      return activities.slice(0, limit);
+    } catch (error) {
+      console.error('Erreur récupération activités:', error);
+      return [];
+    }
+  },
+
+  // ✅ VÉRIFIER LA FORCE DU MOT DE PASSE
+  validatePasswordStrength(password) {
+    const requirements = {
+      minLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumbers: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    const strength = Object.values(requirements).filter(Boolean).length;
+    
+    return {
+      strength,
+      requirements,
+      isValid: strength >= 4 // Au moins 4 conditions sur 5
+    };
   }
 };
