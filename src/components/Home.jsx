@@ -49,6 +49,7 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 text-white">
       <div className="container mx-auto px-4 py-8">
         
+        {/* ✅ NOUVEAU COMPOSANT COUNTDOWN */}
         <Countdown />
 
         <div className="text-center mb-12">
@@ -129,8 +130,43 @@ const Home = () => {
             <p>Tentez votre chance dès maintenant</p>
           </div>
         </div>
+
+        {/* ✅ NOUVELLE SECTION : RÈGLES DU JEU */}
+        <div className="bg-white/10 rounded-2xl p-6 mt-8 backdrop-blur border border-white/20">
+          <h3 className="text-2xl font-bold mb-4">📋 Règles du Tirage Progressif</h3>
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span>🎯</span>
+                <span><strong>Seuil de déclenchement :</strong> 150 participants</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>⏰</span>
+                <span><strong>Date limite :</strong> 31 décembre 2024</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🎁</span>
+                <span><strong>Lots progressifs :</strong> De 3 à 15 lots</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span>✅</span>
+                <span>Tirage garanti à 150 participants ou à la date limite</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🔄</span>
+                <span>Plus de participants = plus de lots à gagner</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>📺</span>
+                <span>Tirage en direct transparent</span>
+              </div>
+            </div>
+          </div>
+        </div>
         
-        <div className="text-center space-y-4 md:space-y-0 md:space-x-6">
+        <div className="text-center space-y-4 md:space-y-0 md:space-x-6 mt-8">
           <button 
             onClick={() => (window.location.hash = '#/buy')}
             className="bg-yellow-500 text-purple-900 px-8 py-4 rounded-full text-xl font-bold hover:bg-yellow-400 transition transform hover:scale-105 shadow-lg"
