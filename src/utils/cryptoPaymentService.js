@@ -93,11 +93,11 @@ export const CryptoPaymentService = {
   // ✅ ADRESSES WALLET (À CONFIGURER AVEC VOS VRAIES ADRESSES)
   getWalletAddress(crypto) {
     const addresses = {
-      BTC: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-      ETH: '0x742d35Cc6634C0532925a3b8D4a7b8a6C4aBfC7A',
+      BTC: 'bc1qvxu6r67t4plqd529plchywcc7jnlwd6cndrwwc',
+      ETH: '0x9e6133311e9ade7cbbd3ed0a8a891a7183dd5d57',
       USDT: 'TBaegYz3ZqgTg2n1pCq7QhQd1qLr9n4vWX',
-      BNB: 'bnb1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-      SOL: 'So1xy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+      BNB: 'Ox9e6133311e9ade7cbbd3ed0a8a891a7183dd5d57',
+      SOL: 'F9C8YCurZsmeKTFZ3DYZ2wWLzzHMA3du'
     };
     
     return addresses[crypto] || 'ADDRESS_NOT_CONFIGURED';
