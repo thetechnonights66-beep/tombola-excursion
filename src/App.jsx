@@ -88,7 +88,6 @@ function App() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin-security" element={<AdminSecurity />} />
-          <Route path="/data-protection" element={<DataProtectionPanel />} /> {/* ✅ NOUVELLE ROUTE AJOUTÉE */}
           <Route path="/live" element={<LiveDraw />} />
           <Route path="/prize-manager" element={<PrizeManager />} />
           <Route path="/referral-admin" element={<ReferralAdminPanel />} />
