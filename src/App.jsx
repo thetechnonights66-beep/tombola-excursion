@@ -10,7 +10,8 @@ import LiveDraw from './components/LiveDraw';
 import PrizeManager from './components/PrizeManager';
 import ReferralAdminPanel from './components/ReferralAdminPanel';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
-import AdminSecurity from './components/AdminSecurity'; // ✅ IMPORT AJOUTÉ
+import AdminSecurity from './components/AdminSecurity';
+import DataProtectionPanel from './components/DataProtectionPanel'; // ✅ IMPORT AJOUTÉ
 import Footer from './components/Footer';
 import { AnalyticsService } from './utils/analyticsService';
 
@@ -86,7 +87,8 @@ function App() {
           <Route path="/my-tickets" element={<MyTickets />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admin-security" element={<AdminSecurity />} /> {/* ✅ NOUVELLE ROUTE AJOUTÉE */}
+          <Route path="/admin-security" element={<AdminSecurity />} />
+          <Route path="/data-protection" element={<DataProtectionPanel />} /> {/* ✅ NOUVELLE ROUTE AJOUTÉE */}
           <Route path="/live" element={<LiveDraw />} />
           <Route path="/prize-manager" element={<PrizeManager />} />
           <Route path="/referral-admin" element={<ReferralAdminPanel />} />
