@@ -503,6 +503,13 @@ const AdminPanel = () => {
             >
               📊 Analytics Avancés
             </button>
+            {/* ✅ NOUVEAU BOUTON : PROTECTION DES DONNÉES */}
+            <button
+              onClick={() => window.location.hash = '#/data-protection'}
+              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg font-semibold text-sm"
+            >
+              🛡️ Protection Données
+            </button>
             <button
               onClick={resetDraw}
               className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-lg font-semibold text-sm"
