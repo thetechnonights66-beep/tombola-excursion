@@ -11,6 +11,7 @@ const AdminPanel = () => {
   const [participants, setParticipants] = useState([]);
   const [winners, setWinners] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [liveStats, setLiveStats] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [resetBallDrop, setResetBallDrop] = useState(0);
@@ -19,25 +20,66 @@ const AdminPanel = () => {
   const [showTransactions, setShowTransactions] = useState(false);
   const [transactionStats, setTransactionStats] = useState(null);
 
+  // ✅ CORRECTION CRITIQUE : VÉRIFICATION IMMÉDIATE DE SÉCURITÉ
   useEffect(() => {
-    if (Auth.isAuthenticated()) {
-      setIsAuthenticated(true);
-      loadRealData();
+    console.log('🔐 VÉRIFICATION SÉCURITÉ ADMIN...');
+    
+    const forceAuthCheck = () => {
+      // ✅ VÉRIFICATION TRÈS STRICTE
+      const userData = localStorage.getItem('adminUser');
+      const token = localStorage.getItem('adminToken');
       
-      // Charger les gagnants existants
-      const savedWinners = localStorage.getItem('tombolaWinners');
-      if (savedWinners) {
-        setWinners(JSON.parse(savedWinners));
+      console.log('🔐 Données auth trouvées:', {
+        user: !!userData,
+        token: !!token
+      });
+
+      // ✅ SI AUCUNE DONNÉE D'AUTH → REDIRECTION IMMÉDIATE
+      if (!userData || !token) {
+        console.log('❌ AUCUNE DONNÉE AUTH - REDIRECTION IMMÉDIATE');
+        window.location.href = window.location.origin + window.location.pathname + '#/admin-login';
+        return;
       }
 
-      // Charger l'historique des snapshots
-      setSnapshots(ParticipantHistory.getSnapshots());
+      // ✅ VÉRIFICATION AVEC LE SERVICE AUTH
+      try {
+        const authValid = Auth.isAuthenticated();
+        console.log('🔐 Auth service result:', authValid);
 
-      // Charger les stats transactions
-      refreshTransactions();
-    } else {
-      window.location.hash = '#/admin-login';
-    }
+        if (!authValid) {
+          console.log('❌ AUTH INVALIDE - REDIRECTION');
+          window.location.href = window.location.origin + window.location.pathname + '#/admin-login';
+          return;
+        }
+
+        // ✅ SEULEMENT SI TOUT EST VALIDE
+        console.log('✅ ACCÈS AUTORISÉ');
+        setIsAuthenticated(true);
+        setIsCheckingAuth(false);
+        
+        // Charger les données réelles
+        loadRealData();
+        
+        // Charger les gagnants existants
+        const savedWinners = localStorage.getItem('tombolaWinners');
+        if (savedWinners) {
+          setWinners(JSON.parse(savedWinners));
+        }
+
+        // Charger l'historique des snapshots
+        setSnapshots(ParticipantHistory.getSnapshots());
+
+        // Charger les stats transactions
+        refreshTransactions();
+        
+      } catch (error) {
+        console.error('❌ Erreur vérification auth:', error);
+        window.location.href = window.location.origin + window.location.pathname + '#/admin-login';
+      }
+    };
+
+    // Délai très court pour s'assurer que tout est chargé
+    setTimeout(forceAuthCheck, 50);
   }, []);
 
   // ✅ Charger les données réelles
@@ -85,7 +127,7 @@ const AdminPanel = () => {
     EventSystem.on(EventSystem.EVENTS.DRAW_RESET, handleDrawReset);
     EventSystem.on(EventSystem.EVENTS.PARTICIPANTS_RESET, handleParticipantsReset);
 
-    // ✅ INTERVALLE DE SAUVEGARDE (garder pour la redondance)
+    // ✅ INTERVALLE DE SAUVEGARDE
     const interval = setInterval(() => {
       loadRealData();
     }, 3000);
@@ -93,7 +135,7 @@ const AdminPanel = () => {
     // ✅ SURVEILLANCE DES TRANSACTIONS
     const transactionInterval = setInterval(() => {
       refreshTransactions();
-    }, 10000); // Vérif toutes les 10 secondes
+    }, 10000);
 
     // ✅ NETTOYAGE
     return () => {
@@ -135,7 +177,7 @@ const AdminPanel = () => {
     Object.keys(payments).forEach(paymentId => {
       const payment = payments[paymentId];
       const paymentTime = new Date(payment.timestamp);
-      const expiryTime = new Date(paymentTime.getTime() + 30 * 60 * 1000); // 30 minutes
+      const expiryTime = new Date(paymentTime.getTime() + 30 * 60 * 1000);
       
       if (now > expiryTime && payment.status === 'pending') {
         payments[paymentId].status = 'expired';
@@ -169,6 +211,14 @@ const AdminPanel = () => {
 
   // ✅ MODIFIER handleWinnerSelected POUR WHATSAPP
   const handleWinnerSelected = (winner) => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     const newWinner = {
       participant: winner.name,
       ticketNumber: winner.ticketNumber,
@@ -203,6 +253,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION POUR ACCÉDER AUX ANALYTICS AVANCÉS
   const handleAnalyticsAccess = () => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     const currentUser = Auth.getCurrentUser();
     if (currentUser) {
       window.location.hash = '#/analytics';
@@ -214,6 +272,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION RÉINITIALISATION AVEC SAUVEGARDE
   const resetDraw = () => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     if (window.confirm('🔄 Réinitialiser le tirage ?\n\n• Tous les gagnants seront effacés\n• Les tickets seront remis en jeu\n• L\'animation sera réinitialisée\n• Une sauvegarde sera créée')) {
       
       const snapshotId = ParticipantHistory.saveParticipantsSnapshot(
@@ -246,6 +312,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION RÉINITIALISATION PARTICIPANTS AVEC SAUVEGARDE
   const resetParticipants = () => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     if (window.confirm('⚠️ RÉINITIALISER TOUS LES PARTICIPANTS ?\n\nUne sauvegarde complète sera créée avant la suppression.')) {
       
       if (window.confirm(`❌ CONFIRMER LA SUPPRESSION :\n\n• ${participants.length} participant(s)\n• ${liveStats?.totalTickets || 0} ticket(s)\n• €${liveStats?.totalRevenue || 0} de recettes\n\nUne sauvegarde sera disponible dans l'historique.`)) {
@@ -277,6 +351,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION POUR RESTAURER UN SNAPSHOT
   const restoreSnapshot = (snapshotId) => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     const snapshot = ParticipantHistory.getSnapshot(snapshotId);
     if (!snapshot) return;
 
@@ -307,6 +389,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION POUR EXPORTER UN SNAPSHOT
   const exportSnapshot = (snapshotId) => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     const csv = ParticipantHistory.exportToCSV(snapshotId);
     if (csv) {
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -322,6 +412,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION POUR SUPPRIMER UN SNAPSHOT
   const deleteSnapshot = (snapshotId) => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     if (window.confirm('Supprimer cette sauvegarde ?')) {
       const updatedSnapshots = ParticipantHistory.deleteSnapshot(snapshotId);
       setSnapshots(updatedSnapshots);
@@ -331,6 +429,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION POUR ANALYSER TOUS LES EMAILS
   const analyzeAllEmails = () => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     const report = EmailVerification.generateSuspiciousEmailsReport(participants);
     
     console.log('📊 Rapport des emails suspects:', report);
@@ -397,6 +503,14 @@ const AdminPanel = () => {
 
   // ✅ FONCTION POUR GÉNÉRER DES PARTICIPANTS DE TEST
   const generateTestParticipants = () => {
+    // ✅ VÉRIFICATION DE SÉCURITÉ
+    if (!Auth.isAuthenticated()) {
+      alert('🚨 Session expirée! Veuillez vous reconnecter.');
+      Auth.logout();
+      window.location.hash = '#/admin-login';
+      return;
+    }
+
     const count = parseInt(prompt('Combien de participants de test générer ?', '10')) || 10;
     
     if (count > 0) {
@@ -436,20 +550,63 @@ const AdminPanel = () => {
     refreshTransactions();
   };
 
-  if (!isAuthenticated) {
+  // ✅ ÉCRAN DE CHARGEMENT PENDANT LA VÉRIFICATION AUTH
+  if (isCheckingAuth) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto"></div>
-          <p className="text-white mt-4">Vérification de l'accès...</p>
+        <div className="text-white text-xl text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <div>Vérification de sécurité en cours...</div>
+          <div className="text-sm text-gray-400 mt-2">
+            Accès administrateur protégé
+          </div>
         </div>
       </div>
     );
   }
 
+  // ✅ DOUBLE SÉCURITÉ : REDIRECTION SI NON AUTHENTIFIÉ
+  if (!isAuthenticated) {
+    useEffect(() => {
+      console.log('🚨 ACCÈS REFUSÉ - REDIRECTION VERS LOGIN');
+      window.location.hash = '#/admin-login';
+    }, []);
+    
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">
+          Accès refusé - Redirection...
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ SEULEMENT SI AUTHENTIFIÉ - AFFICHER LE CONTENU
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-7xl mx-auto">
+        
+        {/* ✅ BANNIÈRE DE SÉCURITÉ */}
+        <div className="bg-green-600 border-2 border-green-400 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">🛡️</span>
+              <div>
+                <div className="font-bold">SESSION ADMIN SÉCURISÉE</div>
+                <div className="text-sm opacity-90">
+                  Connecté • {Auth.getSessionDuration()} • Accès autorisé
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-semibold transition"
+            >
+              🔒 Déconnexion
+            </button>
+          </div>
+        </div>
+
         {/* En-tête avec indicateur temps réel */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -503,10 +660,10 @@ const AdminPanel = () => {
             >
               📊 Analytics Avancés
             </button>
-            {/* ✅ NOUVEAU BOUTON : PROTECTION DES DONNÉES */}
             <button
-              onClick={() => window.location.hash = '#/data-protection'}
-              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg font-semibold text-sm"
+              onClick={resetDraw}
+              className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-lg font-semibold text-sm"
+              disabled={winners.length === 0}
             >
               🎯 Réinit. Tirage
             </button>
@@ -569,7 +726,7 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        {/* NOUVELLE SECTION : SURVEILLANCE DES TRANSACTIONS CRYPTO */}
+        {/* SECTION TRANSACTIONS CRYPTO */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">💎 Surveillance Transactions Crypto</h2>
